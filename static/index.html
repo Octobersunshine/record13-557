@@ -314,6 +314,123 @@
         .warning-icon {
             font-size: 20px;
         }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .leaderboard-table th {
+            background: #1a202c;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .leaderboard-table th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .leaderboard-table th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .leaderboard-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .leaderboard-table tr:hover td {
+            background: #f0fff4;
+        }
+
+        .leaderboard-table .rank-cell {
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .rank-1 { color: #d69e2e; font-size: 18px; }
+        .rank-2 { color: #718096; font-size: 16px; }
+        .rank-3 { color: #c53030; font-size: 16px; }
+
+        .rate-bar {
+            display: inline-block;
+            height: 8px;
+            border-radius: 4px;
+            min-width: 4px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin: 2px;
+            white-space: nowrap;
+        }
+
+        .tag-danger { background: #fed7d7; color: #742a2a; }
+        .tag-warning { background: #fefcbf; color: #744210; }
+        .tag-info { background: #bee3f8; color: #2a4365; }
+
+        .export-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-pill-danger { background: #fed7d7; color: #742a2a; }
+        .stat-pill-warning { background: #fefcbf; color: #744210; }
+        .stat-pill-info { background: #bee3f8; color: #2a4365; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #718096;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover { color: #2d3748; }
+
+        .nav-tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -341,7 +458,10 @@
                     <label for="question-count">题目数量</label>
                     <input type="number" id="question-count" value="5" min="1" max="50">
                 </div>
-                <button class="btn btn-primary" onclick="startExam()">开始考试</button>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="startExam()">开始考试</button>
+                    <button class="btn btn-secondary" onclick="leaderboardReturnSection='login';showLeaderboard()">🏆 作弊榜单</button>
+                </div>
             </div>
         </div>
 
@@ -395,6 +515,71 @@
             
             <div class="btn-group">
                 <button class="btn btn-primary" onclick="restartExam()">重新开始</button>
+                <button class="btn btn-secondary" onclick="showLeaderboardFromResult()">查看作弊榜单</button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="leaderboard-section">
+            <h1>🏆 作弊用户榜单汇总</h1>
+            <p class="subtitle">整场竞赛所有异常行为答题人名单</p>
+
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchLeaderboardTab('ranking')" id="tab-ranking">📊 用户排行</div>
+                <div class="nav-tab" onclick="switchLeaderboardTab('detail')" id="tab-detail">📝 异常明细</div>
+            </div>
+
+            <div class="export-bar" id="leaderboard-stats"></div>
+
+            <div id="leaderboard-ranking-content">
+                <table class="leaderboard-table" id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>用户名</th>
+                            <th>可疑场次</th>
+                            <th>可疑率</th>
+                            <th>切屏</th>
+                            <th>复制</th>
+                            <th>粘贴</th>
+                            <th>离开时长</th>
+                            <th>可疑行为</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+                <div class="empty-state hidden" id="leaderboard-empty">
+                    <div class="empty-state-icon">✅</div>
+                    <div>暂无作弊用户，所有考生表现正常</div>
+                </div>
+            </div>
+
+            <div id="leaderboard-detail-content" class="hidden">
+                <table class="leaderboard-table" id="detail-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>用户名</th>
+                            <th>考试名称</th>
+                            <th>可疑原因</th>
+                            <th>切屏</th>
+                            <th>复制/粘贴</th>
+                            <th>离开(秒)</th>
+                            <th>可疑关键词</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-body"></tbody>
+                </table>
+                <div class="empty-state hidden" id="detail-empty">
+                    <div class="empty-state-icon">✅</div>
+                    <div>暂无异常记录</div>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="exportCSV()">📥 导出 CSV</button>
+                <button class="btn btn-secondary" onclick="exportJSON()">📄 导出 JSON</button>
+                <button class="btn btn-secondary" onclick="refreshLeaderboard()">🔄 刷新数据</button>
+                <button class="btn btn-secondary" onclick="backFromLeaderboard()">返回</button>
             </div>
         </div>
     </div>
@@ -951,6 +1136,7 @@
             
             document.getElementById('result-section').classList.add('hidden');
             document.getElementById('exam-section').classList.add('hidden');
+            document.getElementById('leaderboard-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');
             document.getElementById('monitor-logs').innerHTML = '';
             document.getElementById('answered-count').firstChild.textContent = '0 ';
@@ -960,6 +1146,163 @@
             const badge = document.getElementById('status-badge');
             badge.textContent = '正常';
             badge.className = 'status-badge status-safe';
+        }
+
+        let leaderboardReturnSection = 'login';
+
+        function showLeaderboardFromResult() {
+            leaderboardReturnSection = 'result';
+            showLeaderboard();
+        }
+
+        async function showLeaderboard() {
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('exam-section').classList.add('hidden');
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('leaderboard-section').classList.remove('hidden');
+            await refreshLeaderboard();
+        }
+
+        function backFromLeaderboard() {
+            document.getElementById('leaderboard-section').classList.add('hidden');
+            if (leaderboardReturnSection === 'result') {
+                document.getElementById('result-section').classList.remove('hidden');
+            } else {
+                document.getElementById('login-section').classList.remove('hidden');
+            }
+        }
+
+        async function refreshLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE}/leaderboard/suspicious`);
+                const data = await response.json();
+                renderLeaderboard(data);
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/export/anomalous`);
+                const data = await response.json();
+                renderDetailTable(data.records || []);
+            } catch (error) {
+                console.error('Error fetching export data:', error);
+            }
+        }
+
+        function renderLeaderboard(data) {
+            const tbody = document.getElementById('leaderboard-body');
+            const emptyState = document.getElementById('leaderboard-empty');
+            const statsBar = document.getElementById('leaderboard-stats');
+
+            if (!data.leaderboard || data.leaderboard.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                document.getElementById('leaderboard-table').classList.add('hidden');
+                statsBar.innerHTML = '';
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            document.getElementById('leaderboard-table').classList.remove('hidden');
+
+            statsBar.innerHTML = `
+                <span class="stat-pill stat-pill-danger">🚨 可疑用户: ${data.total_suspicious_users} 人</span>
+                <span class="stat-pill stat-pill-warning">⚠️ 可疑场次: ${data.total_suspicious_sessions} 场</span>
+            `;
+
+            tbody.innerHTML = data.leaderboard.map((user, idx) => {
+                const rank = idx + 1;
+                const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                const rateColor = user.suspicious_rate > 80 ? '#e53e3e' : user.suspicious_rate > 50 ? '#d69e2e' : '#38a169';
+                const totalSwitches = user.total_visibility_changes + user.total_tab_switches + user.total_window_blurs;
+                
+                const reasonTags = user.suspicion_reasons.slice(0, 3).map(r => {
+                    const isDanger = r.includes('🚨') || r.includes('复制') || r.includes('粘贴') || r.includes('关键词');
+                    return `<span class="tag ${isDanger ? 'tag-danger' : 'tag-warning'}">${r.replace(/[🚨⚠️]/g, '').trim().substring(0, 20)}</span>`;
+                }).join('');
+                const moreTag = user.suspicion_reasons.length > 3 ? `<span class="tag tag-info">+${user.suspicion_reasons.length - 3}</span>` : '';
+
+                return `<tr>
+                    <td class="rank-cell ${rankClass}">${rankIcon}</td>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${user.suspicious_sessions} / ${user.total_sessions}</td>
+                    <td>
+                        <span style="color:${rateColor};font-weight:600">${user.suspicious_rate.toFixed(0)}%</span>
+                        <div class="rate-bar" style="width:${Math.min(user.suspicious_rate, 100)}px;background:${rateColor}"></div>
+                    </td>
+                    <td>${totalSwitches}</td>
+                    <td style="color:${user.total_copy_events > 0 ? '#e53e3e' : 'inherit'}">${user.total_copy_events}</td>
+                    <td style="color:${user.total_paste_events > 0 ? '#e53e3e' : 'inherit'}">${user.total_paste_events}</td>
+                    <td>${user.total_away_duration_sec.toFixed(1)}s</td>
+                    <td>${reasonTags}${moreTag}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderDetailTable(records) {
+            const tbody = document.getElementById('detail-body');
+            const emptyState = document.getElementById('detail-empty');
+
+            if (!records || records.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                document.getElementById('detail-table').classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            document.getElementById('detail-table').classList.remove('hidden');
+
+            tbody.innerHTML = records.map((r, idx) => {
+                const totalSwitch = r.visibility_changes + r.tab_switches + r.window_blurs;
+                const copyPaste = `${r.copy_events}/${r.paste_events}`;
+                const reasonText = r.suspicion_reason.length > 40 ? r.suspicion_reason.substring(0, 40) + '...' : r.suspicion_reason;
+                const keywordBadge = r.suspicious_content_matches > 0 
+                    ? `<span class="tag tag-danger">${r.suspicious_content_matches} 次匹配</span>` 
+                    : '<span style="color:#38a169">无</span>';
+
+                return `<tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${r.username}</strong></td>
+                    <td>${r.exam_title}</td>
+                    <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.suspicion_reason}">${reasonText}</td>
+                    <td>${totalSwitch}</td>
+                    <td style="color:${r.copy_events > 0 || r.paste_events > 0 ? '#e53e3e' : 'inherit'}">${copyPaste}</td>
+                    <td>${r.total_away_duration_sec.toFixed(1)}</td>
+                    <td>${keywordBadge}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function switchLeaderboardTab(tab) {
+            document.getElementById('tab-ranking').classList.toggle('active', tab === 'ranking');
+            document.getElementById('tab-detail').classList.toggle('active', tab === 'detail');
+            document.getElementById('leaderboard-ranking-content').classList.toggle('hidden', tab !== 'ranking');
+            document.getElementById('leaderboard-detail-content').classList.toggle('hidden', tab !== 'detail');
+        }
+
+        function exportCSV() {
+            window.open(`${API_BASE}/export/anomalous/csv`, '_blank');
+        }
+
+        async function exportJSON() {
+            try {
+                const response = await fetch(`${API_BASE}/export/anomalous`);
+                const data = await response.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `anomalous_records_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('导出失败: ' + error.message);
+            }
         }
     </script>
 </body>

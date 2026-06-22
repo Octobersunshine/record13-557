@@ -403,3 +403,189 @@ impl QuestionAnswerRepository {
         Ok(answer)
     }
 }
+
+#[derive(Clone)]
+pub struct LeaderboardRepository {
+    db: Database,
+}
+
+impl LeaderboardRepository {
+    pub fn new(db: Database) -> Self {
+        Self { db }
+    }
+
+    pub async fn get_suspicious_user_ranking(&self) -> Result<Vec<SuspiciousUserRank>> {
+        let rows = sqlx::query!(
+            r#"SELECT 
+                u.id as user_id,
+                u.username,
+                COUNT(es.id) as total_sessions,
+                SUM(CASE WHEN es.is_suspicious = 1 THEN 1 ELSE 0 END) as suspicious_sessions,
+                MAX(es.start_time) as latest_suspicious_time
+               FROM users u
+               INNER JOIN exam_sessions es ON es.user_id = u.id
+               GROUP BY u.id, u.username
+               HAVING suspicious_sessions > 0
+               ORDER BY suspicious_sessions DESC, u.username ASC"#
+        )
+        .fetch_all(self.db.pool())
+        .await?;
+
+        let mut ranks = Vec::new();
+        for row in rows {
+            let user_id = row.user_id;
+            let username = row.username;
+            let total_sessions = row.total_sessions;
+            let suspicious_sessions = row.suspicious_sessions.unwrap_or(0);
+            let latest_time = row.latest_suspicious_time;
+
+            let suspicious_rate = if total_sessions > 0 {
+                suspicious_sessions as f64 / total_sessions as f64 * 100.0
+            } else {
+                0.0
+            };
+
+            let session_rows = sqlx::query!(
+                "SELECT id, is_suspicious, suspicion_reason FROM exam_sessions WHERE user_id = ? AND is_suspicious = 1",
+                user_id
+            )
+            .fetch_all(self.db.pool())
+            .await?;
+
+            let mut max_risk_score: f32 = 0.0;
+            let mut all_reasons: Vec<String> = Vec::new();
+
+            for sr in &session_rows {
+                if let Some(reason) = &sr.suspicion_reason {
+                    for r in reason.split("; ") {
+                        let trimmed = r.trim().to_string();
+                        if !trimmed.is_empty() && !all_reasons.contains(&trimmed) {
+                            all_reasons.push(trimmed);
+                        }
+                    }
+                }
+            }
+
+            let event_stats = sqlx::query!(
+                r#"SELECT 
+                    COALESCE(SUM(CASE WHEN event_type = 'visibility_change' THEN 1 ELSE 0 END), 0) as visibility_changes,
+                    COALESCE(SUM(CASE WHEN event_type = 'tab_switch' THEN 1 ELSE 0 END), 0) as tab_switches,
+                    COALESCE(SUM(CASE WHEN event_type = 'window_blur' THEN 1 ELSE 0 END), 0) as window_blurs,
+                    COALESCE(SUM(CASE WHEN event_type = 'copy' THEN 1 ELSE 0 END), 0) as copy_events,
+                    COALESCE(SUM(CASE WHEN event_type = 'paste' THEN 1 ELSE 0 END), 0) as paste_events,
+                    COALESCE(SUM(CASE WHEN event_type IN ('visibility_change', 'window_blur', 'page_blur') AND visibility_state = 'hidden' THEN COALESCE(duration_ms, 0) ELSE 0 END), 0) as total_away_ms
+                   FROM behavior_events 
+                   WHERE session_id IN (SELECT id FROM exam_sessions WHERE user_id = ?)"#,
+                user_id
+            )
+            .fetch_one(self.db.pool())
+            .await?;
+
+            let total_away_sec = (event_stats.total_away_ms.unwrap_or(0) as f64) / 1000.0;
+
+            ranks.push(SuspiciousUserRank {
+                user_id,
+                username,
+                total_sessions,
+                suspicious_sessions,
+                suspicious_rate,
+                max_risk_score,
+                total_visibility_changes: event_stats.visibility_changes.unwrap_or(0),
+                total_tab_switches: event_stats.tab_switches.unwrap_or(0),
+                total_window_blurs: event_stats.window_blurs.unwrap_or(0),
+                total_copy_events: event_stats.copy_events.unwrap_or(0),
+                total_paste_events: event_stats.paste_events.unwrap_or(0),
+                total_away_duration_sec: total_away_sec,
+                latest_suspicious_time: latest_time,
+                suspicion_reasons: all_reasons,
+            });
+        }
+
+        ranks.sort_by(|a, b| {
+            b.suspicious_sessions
+                .cmp(&a.suspicious_sessions)
+                .then_with(|| b.suspicious_rate.partial_cmp(&a.suspicious_rate).unwrap_or(std::cmp::Ordering::Equal))
+        });
+
+        Ok(ranks)
+    }
+
+    pub async fn count_suspicious_sessions(&self) -> Result<i64> {
+        let count: Option<i64> = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM exam_sessions WHERE is_suspicious = 1"
+        )
+        .fetch_optional(self.db.pool())
+        .await?;
+        Ok(count.unwrap_or(0))
+    }
+
+    pub async fn get_all_suspicious_sessions_detail(&self) -> Result<Vec<ExportAnomalousRecord>> {
+        let sessions = sqlx::query!(
+            r#"SELECT id, user_id, exam_title, start_time, end_time, 
+                      is_suspicious as "is_suspicious: bool", suspicion_reason, total_questions 
+               FROM exam_sessions WHERE is_suspicious = 1 ORDER BY start_time DESC"#
+        )
+        .fetch_all(self.db.pool())
+        .await?;
+
+        let mut records = Vec::new();
+
+        for (idx, session) in sessions.iter().enumerate() {
+            let username = sqlx::query_scalar::<_, String>(
+                "SELECT username FROM users WHERE id = ?"
+            )
+            .bind(&session.user_id)
+            .fetch_optional(self.db.pool())
+            .await?
+            .unwrap_or_else(|| "unknown".to_string());
+
+            let event_stats = sqlx::query!(
+                r#"SELECT 
+                    COALESCE(SUM(CASE WHEN event_type = 'visibility_change' THEN 1 ELSE 0 END), 0) as visibility_changes,
+                    COALESCE(SUM(CASE WHEN event_type = 'tab_switch' THEN 1 ELSE 0 END), 0) as tab_switches,
+                    COALESCE(SUM(CASE WHEN event_type = 'window_blur' THEN 1 ELSE 0 END), 0) as window_blurs,
+                    COALESCE(SUM(CASE WHEN event_type = 'copy' THEN 1 ELSE 0 END), 0) as copy_events,
+                    COALESCE(SUM(CASE WHEN event_type = 'paste' THEN 1 ELSE 0 END), 0) as paste_events,
+                    COALESCE(SUM(CASE WHEN event_type IN ('visibility_change', 'window_blur', 'page_blur') AND visibility_state = 'hidden' THEN COALESCE(duration_ms, 0) ELSE 0 END), 0) as total_away_ms,
+                    COALESCE(MAX(CASE WHEN event_type IN ('visibility_change', 'window_blur', 'page_blur') AND visibility_state = 'hidden' AND duration_ms IS NOT NULL THEN duration_ms ELSE 0 END), 0) as max_away_ms,
+                    COALESCE(SUM(CASE WHEN event_type = 'copy' THEN COALESCE(LENGTH(details), 0) ELSE 0 END), 0) as total_copy_chars,
+                    COALESCE(SUM(CASE WHEN event_type = 'paste' THEN COALESCE(LENGTH(details), 0) ELSE 0 END), 0) as total_paste_chars
+                   FROM behavior_events WHERE session_id = ?"#,
+                session.id
+            )
+            .fetch_one(self.db.pool())
+            .await?;
+
+            let suspicious_matches = sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM behavior_events WHERE session_id = ? AND event_type IN ('copy', 'paste') AND (details LIKE '%答案%' OR details LIKE '%解析%' OR details LIKE '%题库%' OR details LIKE '%搜题%' OR details LIKE '%作弊%' OR details LIKE '%参考答案%' OR details LIKE '%答案大全%' OR details LIKE '%考试答案%')"
+            )
+            .bind(&session.id)
+            .fetch_one(self.db.pool())
+            .await?;
+
+            records.push(ExportAnomalousRecord {
+                rank: idx + 1,
+                user_id: session.user_id.clone(),
+                username,
+                session_id: session.id.clone(),
+                exam_title: session.exam_title.clone(),
+                start_time: session.start_time,
+                end_time: session.end_time,
+                risk_score: 0.0,
+                suspicion_reason: session.suspicion_reason.clone().unwrap_or_default(),
+                visibility_changes: event_stats.visibility_changes.unwrap_or(0),
+                tab_switches: event_stats.tab_switches.unwrap_or(0),
+                window_blurs: event_stats.window_blurs.unwrap_or(0),
+                copy_events: event_stats.copy_events.unwrap_or(0),
+                paste_events: event_stats.paste_events.unwrap_or(0),
+                total_away_duration_sec: event_stats.total_away_ms.unwrap_or(0) as f64 / 1000.0,
+                max_away_duration_sec: event_stats.max_away_ms.unwrap_or(0) as f64 / 1000.0,
+                total_copy_characters: event_stats.total_copy_chars.unwrap_or(0),
+                total_paste_characters: event_stats.total_paste_chars.unwrap_or(0),
+                suspicious_content_matches: suspicious_matches,
+            });
+        }
+
+        Ok(records)
+    }
+}

@@ -36,6 +36,7 @@ async fn main() -> anyhow::Result<()> {
     let session_repo = ExamSessionRepository::new(db.clone());
     let event_repo = BehaviorEventRepository::new(db.clone());
     let answer_repo = QuestionAnswerRepository::new(db.clone());
+    let leaderboard_repo = LeaderboardRepository::new(db.clone());
 
     let detection_config = DetectionConfig::default();
     let detection_service = BehaviorDetectionService::new(
@@ -51,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
         event_repo,
         answer_repo,
         detection_service,
+        leaderboard_repo,
     );
 
     let app_state = AppState { exam_service };
@@ -74,7 +76,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/sessions/:id/suspicious", post(mark_suspicious))
         .route("/sessions/end", post(end_session))
         .route("/events", post(report_event))
-        .route("/answers", post(submit_answer));
+        .route("/answers", post(submit_answer))
+        .route("/leaderboard/suspicious", get(get_suspicious_leaderboard))
+        .route("/export/anomalous", get(export_anomalous_json))
+        .route("/export/anomalous/csv", get(export_anomalous_csv));
 
     let app = Router::new()
         .nest("/api", api_routes)

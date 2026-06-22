@@ -258,3 +258,58 @@ pub struct UserResponse {
     pub username: String,
     pub created_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuspiciousUserRank {
+    pub user_id: String,
+    pub username: String,
+    pub total_sessions: i64,
+    pub suspicious_sessions: i64,
+    pub suspicious_rate: f64,
+    pub max_risk_score: f32,
+    pub total_visibility_changes: i64,
+    pub total_tab_switches: i64,
+    pub total_window_blurs: i64,
+    pub total_copy_events: i64,
+    pub total_paste_events: i64,
+    pub total_away_duration_sec: f64,
+    pub latest_suspicious_time: Option<DateTime<Utc>>,
+    pub suspicion_reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuspiciousLeaderboardResponse {
+    pub total_suspicious_users: usize,
+    pub total_suspicious_sessions: i64,
+    pub leaderboard: Vec<SuspiciousUserRank>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportAnomalousRecord {
+    pub rank: usize,
+    pub user_id: String,
+    pub username: String,
+    pub session_id: String,
+    pub exam_title: String,
+    pub start_time: DateTime<Utc>,
+    pub end_time: Option<DateTime<Utc>>,
+    pub risk_score: f32,
+    pub suspicion_reason: String,
+    pub visibility_changes: i64,
+    pub tab_switches: i64,
+    pub window_blurs: i64,
+    pub copy_events: i64,
+    pub paste_events: i64,
+    pub total_away_duration_sec: f64,
+    pub max_away_duration_sec: f64,
+    pub total_copy_characters: i64,
+    pub total_paste_characters: i64,
+    pub suspicious_content_matches: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportResponse {
+    pub export_time: DateTime<Utc>,
+    pub total_records: usize,
+    pub records: Vec<ExportAnomalousRecord>,
+}

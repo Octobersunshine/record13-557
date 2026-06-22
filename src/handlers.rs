@@ -287,6 +287,57 @@ pub struct MarkSuspiciousRequest {
     pub reason: String,
 }
 
+pub async fn get_suspicious_leaderboard(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    match state.exam_service.get_suspicious_leaderboard().await {
+        Ok(leaderboard) => (StatusCode::OK, Json(leaderboard)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(error_response(&e.to_string())),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn export_anomalous_json(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    match state.exam_service.export_anomalous_records().await {
+        Ok(export) => (StatusCode::OK, Json(export)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(error_response(&e.to_string())),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn export_anomalous_csv(
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    match state.exam_service.export_anomalous_csv().await {
+        Ok(csv) => {
+            let bom = "\u{FEFF}";
+            let body = format!("{}{}", bom, csv);
+            (
+                StatusCode::OK,
+                [
+                    ("content-type", "text/csv; charset=utf-8"),
+                    ("content-disposition", "attachment; filename=\"anomalous_records.csv\""),
+                ],
+                body,
+            )
+                .into_response()
+        }
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(error_response(&e.to_string())),
+        )
+            .into_response(),
+    }
+}
+
 fn error_response(message: &str) -> HashMap<String, String> {
     let mut response = HashMap::new();
     response.insert("error".to_string(), message.to_string());

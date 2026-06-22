@@ -1,0 +1,10 @@
+E:\temp\record13\557\target\debug\deps\version_check-adb1c535f3d42588.d: D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\lib.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\version.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\channel.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\date.rs
+
+E:\temp\record13\557\target\debug\deps\libversion_check-adb1c535f3d42588.rlib: D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\lib.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\version.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\channel.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\date.rs
+
+E:\temp\record13\557\target\debug\deps\libversion_check-adb1c535f3d42588.rmeta: D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\lib.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\version.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\channel.rs D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\date.rs
+
+D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\lib.rs:
+D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\version.rs:
+D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\channel.rs:
+D:\ProgramFiles\Rust\cargo_home\registry\src\index.crates.io-1949cf8c6b5b557f\version_check-0.9.5\src\date.rs:

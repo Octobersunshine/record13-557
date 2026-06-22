@@ -528,6 +528,7 @@ pub struct ExamService {
     event_repo: BehaviorEventRepository,
     answer_repo: QuestionAnswerRepository,
     detection_service: BehaviorDetectionService,
+    leaderboard_repo: LeaderboardRepository,
 }
 
 impl ExamService {
@@ -537,6 +538,7 @@ impl ExamService {
         event_repo: BehaviorEventRepository,
         answer_repo: QuestionAnswerRepository,
         detection_service: BehaviorDetectionService,
+        leaderboard_repo: LeaderboardRepository,
     ) -> Self {
         Self {
             user_repo,
@@ -544,6 +546,7 @@ impl ExamService {
             event_repo,
             answer_repo,
             detection_service,
+            leaderboard_repo,
         }
     }
 
@@ -671,5 +674,58 @@ impl ExamService {
 
     pub async fn get_session_analysis(&self, session_id: &str) -> Result<SuspicionAnalysis> {
         self.detection_service.analyze_session(session_id).await
+    }
+
+    pub async fn get_suspicious_leaderboard(&self) -> Result<SuspiciousLeaderboardResponse> {
+        let leaderboard = self.leaderboard_repo.get_suspicious_user_ranking().await?;
+        let total_suspicious_sessions = self.leaderboard_repo.count_suspicious_sessions().await?;
+        Ok(SuspiciousLeaderboardResponse {
+            total_suspicious_users: leaderboard.len(),
+            total_suspicious_sessions,
+            leaderboard,
+        })
+    }
+
+    pub async fn export_anomalous_records(&self) -> Result<ExportResponse> {
+        let records = self.leaderboard_repo.get_all_suspicious_sessions_detail().await?;
+        let total = records.len();
+        Ok(ExportResponse {
+            export_time: Utc::now(),
+            total_records: total,
+            records,
+        })
+    }
+
+    pub async fn export_anomalous_csv(&self) -> Result<String> {
+        let records = self.leaderboard_repo.get_all_suspicious_sessions_detail().await?;
+
+        let mut csv = String::from("排名,用户ID,用户名,会话ID,考试名称,开始时间,结束时间,可疑原因,可见性变化,标签页切换,窗口失焦,复制次数,粘贴次数,累计离开(秒),最长离开(秒),复制字符数,粘贴字符数,可疑关键词匹配\n");
+
+        for r in &records {
+            let end_time = r.end_time.map(|t| t.to_rfc3339()).unwrap_or_else(|| "进行中".to_string());
+            csv.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{:.1},{:.1},{},{},{}\n",
+                r.rank,
+                r.user_id,
+                r.username,
+                r.session_id,
+                r.exam_title,
+                r.start_time.to_rfc3339(),
+                end_time,
+                r.suspicion_reason.replace(',', "，"),
+                r.visibility_changes,
+                r.tab_switches,
+                r.window_blurs,
+                r.copy_events,
+                r.paste_events,
+                r.total_away_duration_sec,
+                r.max_away_duration_sec,
+                r.total_copy_characters,
+                r.total_paste_characters,
+                r.suspicious_content_matches,
+            ));
+        }
+
+        Ok(csv)
     }
 }
