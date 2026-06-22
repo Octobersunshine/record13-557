@@ -1,0 +1,24 @@
+[package]
+name = "exam-monitor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio", "sqlite", "chrono", "macros"] }
+anyhow = "1"
+thiserror = "1"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+tower = "0.4"
+uuid = { version = "1", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+windows-sys = { version = "0.52", features = ["Win32_Foundation", "Win32_Security", "Win32_System_Threading", "Win32_Networking_WinSock", "Win32_System_Diagnostics_Debug", "Win32_System_ProcessStatus", "Win32_System_WindowsProgramming"] }
+windows-targets = "0.52"
+
+[dev-dependencies]
+tempfile = "3"

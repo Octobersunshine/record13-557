@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线考试系统 - 行为监控演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #1a202c;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .question {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .question.active {
+            border-color: #667eea;
+            background: #f0fff4;
+        }
+
+        .question.answered {
+            border-color: #48bb78;
+        }
+
+        .question-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .options {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0fff4;
+        }
+
+        .option.selected {
+            border-color: #48bb78;
+            background: #c6f6d5;
+        }
+
+        .monitor-panel {
+            background: #1a202c;
+            color: #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .monitor-title {
+            color: #68d391;
+            font-size: 14px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #2d3748;
+            font-size: 13px;
+        }
+
+        .log-time {
+            color: #718096;
+            margin-right: 10px;
+        }
+
+        .log-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .log-type.info {
+            background: #2b6cb0;
+            color: white;
+        }
+
+        .log-type.warning {
+            background: #d69e2e;
+            color: white;
+        }
+
+        .log-type.danger {
+            background: #c53030;
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-safe {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-suspicious {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .warning-banner {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card" id="login-section">
+            <h1>📝 在线考试系统</h1>
+            <p class="subtitle">行为监控演示 - 检测切屏、离开页面等可疑行为</p>
+
+            <div class="warning-banner">
+                <span class="warning-icon">⚠️</span>
+                <span>本系统会监控您的页面行为，包括切屏、复制粘贴等操作，用于考试防作弊演示。</span>
+            </div>
+
+            <div class="section">
+                <div class="section-title">考生信息</div>
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="请输入您的用户名" value="student001">
+                </div>
+                <div class="form-group">
+                    <label for="exam-title">考试名称</label>
+                    <input type="text" id="exam-title" placeholder="请输入考试名称" value="2024年度期末考试">
+                </div>
+                <div class="form-group">
+                    <label for="question-count">题目数量</label>
+                    <input type="number" id="question-count" value="5" min="1" max="50">
+                </div>
+                <button class="btn btn-primary" onclick="startExam()">开始考试</button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="exam-section">
+            <h1 id="exam-title-display">考试进行中</h1>
+            <p class="subtitle" id="exam-subtitle">请认真作答，系统正在监控您的行为</p>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">当前状态</div>
+                    <div class="info-value"><span id="status-badge" class="status-badge status-safe">正常</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">已答题数</div>
+                    <div class="info-value" id="answered-count">0 / <span id="total-count">5</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">风险分数</div>
+                    <div class="info-value" id="risk-score">0</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">离开次数</div>
+                    <div class="info-value" id="away-count">0</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">题目</div>
+                <div id="questions-container"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">实时行为监控</div>
+                <div class="monitor-panel">
+                    <div class="monitor-title">📊 行为日志</div>
+                    <div id="monitor-logs"></div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-danger" onclick="endExam()">交卷并结束考试</button>
+                <button class="btn btn-secondary" onclick="showAnalysis()">查看分析报告</button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="result-section">
+            <h1>📋 考试分析报告</h1>
+            <p class="subtitle">考试已结束，以下是行为分析结果</p>
+            
+            <div id="analysis-content"></div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="restartExam()">重新开始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let currentUser = null;
+        let currentSession = null;
+        let questions = [];
+        let eventCount = 0;
+        let isSuspicious = false;
+
+        function generateQuestions(count) {
+            const questionTemplates = [
+                { q: "1 + 1 = ?", options: ["1", "2", "3", "4"], answer: 1 },
+                { q: "2 × 3 = ?", options: ["5", "6", "7", "8"], answer: 1 },
+                { q: "10 - 4 = ?", options: ["5", "6", "7", "8"], answer: 1 },
+                { q: "15 ÷ 3 = ?", options: ["3", "4", "5", "6"], answer: 2 },
+                { q: "7² = ?", options: ["14", "49", "56", "63"], answer: 1 },
+                { q: "√16 = ?", options: ["2", "3", "4", "5"], answer: 2 },
+                { q: "3³ = ?", options: ["9", "18", "27", "36"], answer: 2 },
+                { q: "5! = ?", options: ["60", "120", "180", "240"], answer: 1 },
+                { q: "sin(90°) = ?", options: ["0", "0.5", "1", "√2"], answer: 2 },
+                { q: "π ≈ ?", options: ["3.14", "2.72", "1.41", "1.73"], answer: 0 }
+            ];
+            
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                const template = questionTemplates[i % questionTemplates.length];
+                result.push({
+                    id: i + 1,
+                    text: `第${i + 1}题: ${template.q}`,
+                    options: template.options,
+                    correctAnswer: template.answer,
+                    userAnswer: null
+                });
+            }
+            return result;
+        }
+
+        async function startExam() {
+            const username = document.getElementById('username').value.trim();
+            const examTitle = document.getElementById('exam-title').value.trim();
+            const questionCount = parseInt(document.getElementById('question-count').value);
+
+            if (!username || !examTitle) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            try {
+                const userResponse = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                currentUser = await userResponse.json();
+
+                const sessionResponse = await fetch(`${API_BASE}/sessions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        exam_title: examTitle,
+                        total_questions: questionCount
+                    })
+                });
+                currentSession = await sessionResponse.json();
+
+                questions = generateQuestions(questionCount);
+                
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('exam-section').classList.remove('hidden');
+                document.getElementById('exam-title-display').textContent = examTitle;
+                document.getElementById('total-count').textContent = questionCount;
+
+                renderQuestions();
+                startMonitoring();
+                
+                addLog('exam_start', '考试开始', 'info');
+            } catch (error) {
+                console.error('Error starting exam:', error);
+                alert('启动考试失败，请检查服务是否运行');
+            }
+        }
+
+        function renderQuestions() {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = '';
+
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question';
+                questionDiv.id = `question-${q.id}`;
+                
+                const optionsHtml = q.options.map((opt, optIndex) => `
+                    <div class="option ${q.userAnswer === optIndex ? 'selected' : ''}" 
+                         onclick="selectAnswer(${q.id}, ${optIndex})">
+                        ${String.fromCharCode(65 + optIndex)}. ${opt}
+                    </div>
+                `).join('');
+
+                questionDiv.innerHTML = `
+                    <div class="question-text">
+                        <span class="question-number">${q.id}</span>${q.text}
+                    </div>
+                    <div class="options">
+                        ${optionsHtml}
+                    </div>
+                `;
+
+                container.appendChild(questionDiv);
+            });
+        }
+
+        async function selectAnswer(questionId, optionIndex) {
+            const question = questions.find(q => q.id === questionId);
+            if (!question) return;
+
+            question.userAnswer = optionIndex;
+            
+            document.querySelectorAll(`#question-${questionId} .option`).forEach((opt, idx) => {
+                opt.classList.toggle('selected', idx === optionIndex);
+            });
+            
+            document.getElementById(`question-${questionId}`).classList.add('answered');
+
+            const answeredCount = questions.filter(q => q.userAnswer !== null).length;
+            document.getElementById('answered-count').firstChild.textContent = answeredCount + ' ';
+
+            try {
+                await fetch(`${API_BASE}/answers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSession.session_id,
+                        question_id: questionId,
+                        answer: optionIndex.toString()
+                    })
+                });
+                
+                addLog('answer_submit', `提交第 ${questionId} 题答案`, 'info');
+            } catch (error) {
+                console.error('Error submitting answer:', error);
+            }
+        }
+
+        function startMonitoring() {
+            let lastHiddenTime = null;
+
+            document.addEventListener('visibilitychange', () => {
+                const isHidden = document.hidden;
+                const duration = lastHiddenTime && !isHidden 
+                    ? Date.now() - lastHiddenTime 
+                    : null;
+                
+                if (isHidden) {
+                    lastHiddenTime = Date.now();
+                }
+
+                reportEvent({
+                    event_type: 'visibility_change',
+                    visibility_state: isHidden ? 'hidden' : 'visible',
+                    duration_ms: duration,
+                    details: isHidden ? '用户离开页面' : '用户返回页面'
+                });
+
+                addLog('visibility_change', 
+                    isHidden ? '⚠️ 用户离开页面' : '✅ 用户返回页面', 
+                    isHidden ? 'warning' : 'info');
+                
+                updateAwayCount();
+            });
+
+            window.addEventListener('blur', () => {
+                reportEvent({
+                    event_type: 'window_blur',
+                    visibility_state: 'hidden',
+                    details: '窗口失去焦点'
+                });
+                addLog('window_blur', '⚠️ 窗口失去焦点', 'warning');
+                updateAwayCount();
+            });
+
+            window.addEventListener('focus', () => {
+                reportEvent({
+                    event_type: 'window_focus',
+                    visibility_state: 'visible',
+                    details: '窗口获得焦点'
+                });
+                addLog('window_focus', '✅ 窗口获得焦点', 'info');
+            });
+
+            document.addEventListener('copy', (e) => {
+                reportEvent({
+                    event_type: 'copy',
+                    details: `复制内容: ${window.getSelection().toString().substring(0, 50)}`
+                });
+                addLog('copy', '⚠️ 检测到复制操作', 'danger');
+                e.preventDefault();
+                alert('考试期间禁止复制！');
+            });
+
+            document.addEventListener('paste', (e) => {
+                reportEvent({
+                    event_type: 'paste',
+                    details: '检测到粘贴操作'
+                });
+                addLog('paste', '🚨 检测到粘贴操作', 'danger');
+                e.preventDefault();
+                alert('考试期间禁止粘贴！');
+            });
+
+            document.addEventListener('cut', (e) => {
+                reportEvent({
+                    event_type: 'cut',
+                    details: '检测到剪切操作'
+                });
+                addLog('cut', '🚨 检测到剪切操作', 'danger');
+                e.preventDefault();
+                alert('考试期间禁止剪切！');
+            });
+
+            document.addEventListener('contextmenu', (e) => {
+                reportEvent({
+                    event_type: 'context_menu',
+                    details: '检测到右键菜单'
+                });
+                addLog('context_menu', '⚠️ 检测到右键菜单', 'warning');
+                e.preventDefault();
+            });
+
+            window.addEventListener('beforeunload', () => {
+                reportEvent({
+                    event_type: 'custom',
+                    details: '用户尝试关闭页面'
+                });
+            });
+
+            setInterval(() => {
+                if (currentSession) {
+                    fetch(`${API_BASE}/sessions/${currentSession.session_id}/analysis`)
+                        .then(r => r.json())
+                        .then(data => {
+                            document.getElementById('risk-score').textContent = 
+                                data.risk_score.toFixed(1);
+                            
+                            if (data.is_suspicious && !isSuspicious) {
+                                isSuspicious = true;
+                                const badge = document.getElementById('status-badge');
+                                badge.textContent = '可疑';
+                                badge.className = 'status-badge status-suspicious';
+                                addLog('suspicious_detected', 
+                                    '🚨 系统检测到可疑行为', 'danger');
+                            }
+                        })
+                        .catch(() => {});
+                }
+            }, 3000);
+        }
+
+        async function reportEvent(eventData) {
+            if (!currentSession) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/events`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSession.session_id,
+                        event_time: new Date().toISOString(),
+                        page_x: event.pageX || null,
+                        page_y: event.pageY || null,
+                        screen_x: event.screenX || null,
+                        screen_y: event.screenY || null,
+                        ...eventData
+                    })
+                });
+
+                const result = await response.json();
+                if (result.is_suspicious && !isSuspicious) {
+                    isSuspicious = true;
+                    const badge = document.getElementById('status-badge');
+                    badge.textContent = '可疑';
+                    badge.className = 'status-badge status-suspicious';
+                }
+            } catch (error) {
+                console.error('Error reporting event:', error);
+            }
+        }
+
+        function addLog(type, message, level = 'info') {
+            eventCount++;
+            const logsContainer = document.getElementById('monitor-logs');
+            const time = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-type ${level}">${type}</span>
+                <span>${message}</span>
+            `;
+            
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+            
+            while (logsContainer.children.length > 50) {
+                logsContainer.removeChild(logsContainer.lastChild);
+            }
+        }
+
+        function updateAwayCount() {
+            const currentCount = parseInt(document.getElementById('away-count').textContent);
+            document.getElementById('away-count').textContent = currentCount + 1;
+        }
+
+        async function endExam() {
+            if (!confirm('确定要交卷吗？提交后将无法修改答案。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/sessions/end`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentSession.session_id })
+                });
+                
+                const analysis = await response.json();
+                showResult(analysis);
+            } catch (error) {
+                console.error('Error ending exam:', error);
+                alert('结束考试失败');
+            }
+        }
+
+        async function showAnalysis() {
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${currentSession.session_id}`);
+                const detail = await response.json();
+                showResult(detail.analysis);
+            } catch (error) {
+                console.error('Error getting analysis:', error);
+            }
+        }
+
+        function showResult(analysis) {
+            document.getElementById('exam-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+
+            const content = document.getElementById('analysis-content');
+            
+            const correctCount = questions.filter(q => q.userAnswer === q.correctAnswer).length;
+            const score = (correctCount / questions.length * 100).toFixed(1);
+
+            const statusClass = analysis.is_suspicious ? 'status-suspicious' : 'status-safe';
+            const statusText = analysis.is_suspicious ? '异常 - 存在可疑行为' : '正常';
+
+            let reasonsHtml = '';
+            if (analysis.reasons && analysis.reasons.length > 0) {
+                reasonsHtml = `
+                    <div class="section">
+                        <div class="section-title">⚠️ 可疑行为记录</div>
+                        <ul style="list-style: none; padding: 0;">
+                            ${analysis.reasons.map(r => `
+                                <li style="padding: 10px; background: #fff3cd; margin-bottom: 8px; 
+                                           border-radius: 6px; color: #856404;">
+                                    • ${r}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">考试成绩</div>
+                        <div class="info-value">${score} 分</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">正确题数</div>
+                        <div class="info-value">${correctCount} / ${questions.length}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">行为状态</div>
+                        <div class="info-value"><span class="status-badge ${statusClass}">${statusText}</span></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">风险分数</div>
+                        <div class="info-value">${analysis.risk_score.toFixed(1)} / 100</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">📊 行为指标详情</div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">页面可见性变化</div>
+                            <div class="info-value">${analysis.metrics.visibility_changes} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">标签页切换</div>
+                            <div class="info-value">${analysis.metrics.tab_switches} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">窗口失焦</div>
+                            <div class="info-value">${analysis.metrics.window_blurs} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">复制操作</div>
+                            <div class="info-value">${analysis.metrics.copy_events} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">粘贴操作</div>
+                            <div class="info-value">${analysis.metrics.paste_events} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">离开页面次数</div>
+                            <div class="info-value">${analysis.metrics.away_count} 次</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">累计离开时间</div>
+                            <div class="info-value">${(analysis.metrics.total_away_duration_ms / 1000).toFixed(1)} 秒</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">单次最长离开</div>
+                            <div class="info-value">${(analysis.metrics.max_away_duration_ms / 1000).toFixed(1)} 秒</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${reasonsHtml}
+
+                <div class="section">
+                    <div class="section-title">📝 答题详情</div>
+                    ${questions.map(q => `
+                        <div class="question ${q.userAnswer === q.correctAnswer ? 'answered' : ''}" 
+                             style="margin-bottom: 10px; padding: 15px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">
+                                ${q.text}
+                            </div>
+                            <div style="color: ${q.userAnswer === q.correctAnswer ? '#38a169' : '#e53e3e'};">
+                                你的答案: ${q.userAnswer !== null ? q.options[q.userAnswer] : '未作答'}
+                                ${q.userAnswer === q.correctAnswer ? '✅ 正确' : '❌ 错误'}
+                                ${q.userAnswer !== q.correctAnswer ? ` (正确答案: ${q.options[q.correctAnswer]})` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            addLog('exam_end', '考试结束', 'info');
+        }
+
+        function restartExam() {
+            currentUser = null;
+            currentSession = null;
+            questions = [];
+            eventCount = 0;
+            isSuspicious = false;
+            
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('exam-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('monitor-logs').innerHTML = '';
+            document.getElementById('answered-count').firstChild.textContent = '0 ';
+            document.getElementById('risk-score').textContent = '0';
+            document.getElementById('away-count').textContent = '0';
+            
+            const badge = document.getElementById('status-badge');
+            badge.textContent = '正常';
+            badge.className = 'status-badge status-safe';
+        }
+    </script>
+</body>
+</html>
