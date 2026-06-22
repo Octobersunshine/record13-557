@@ -235,6 +235,16 @@ pub struct BehaviorMetrics {
     pub max_away_duration_ms: i64,
     pub average_away_duration_ms: f64,
     pub away_count: usize,
+    pub frequent_switches_1min: usize,
+    pub frequent_switches_5min: usize,
+    pub max_switches_per_minute: usize,
+    pub total_copy_characters: usize,
+    pub max_single_copy_characters: usize,
+    pub frequent_copy_1min: usize,
+    pub total_paste_characters: usize,
+    pub paste_to_answer_ratio: f64,
+    pub rapid_succession_events: usize,
+    pub suspicious_content_matches: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

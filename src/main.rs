@@ -41,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
     let detection_service = BehaviorDetectionService::new(
         event_repo.clone(),
         session_repo.clone(),
+        answer_repo.clone(),
         detection_config,
     );
 

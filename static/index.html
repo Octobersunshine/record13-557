@@ -589,33 +589,52 @@
             });
 
             document.addEventListener('copy', (e) => {
+                const copiedText = window.getSelection().toString();
+                const textLength = copiedText.length;
                 reportEvent({
                     event_type: 'copy',
-                    details: `复制内容: ${window.getSelection().toString().substring(0, 50)}`
+                    details: copiedText,
+                    duration_ms: textLength
                 });
-                addLog('copy', '⚠️ 检测到复制操作', 'danger');
+                addLog('copy', `⚠️ 检测到复制操作 (${textLength} 字符)`, 'danger');
                 e.preventDefault();
-                alert('考试期间禁止复制！');
+                
+                if (textLength >= 50) {
+                    alert(`⚠️ 考试期间禁止复制！\n\n检测到复制内容: ${textLength} 字符\n此行为已被系统记录，将影响你的考试成绩。`);
+                } else {
+                    alert('⚠️ 考试期间禁止复制！\n此行为已被系统记录。');
+                }
             });
 
             document.addEventListener('paste', (e) => {
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const textLength = pastedText.length;
                 reportEvent({
                     event_type: 'paste',
-                    details: '检测到粘贴操作'
+                    details: pastedText,
+                    duration_ms: textLength
                 });
-                addLog('paste', '🚨 检测到粘贴操作', 'danger');
+                addLog('paste', `🚨 检测到粘贴操作 (${textLength} 字符)`, 'danger');
                 e.preventDefault();
-                alert('考试期间禁止粘贴！');
+                
+                if (textLength >= 20) {
+                    alert(`🚨 考试期间禁止粘贴！\n\n检测到粘贴内容: ${textLength} 字符\n此行为已被系统记录，你的考试可能被标记为无效。`);
+                } else {
+                    alert('🚨 考试期间禁止粘贴！\n此行为已被系统记录。');
+                }
             });
 
             document.addEventListener('cut', (e) => {
+                const cutText = window.getSelection().toString();
+                const textLength = cutText.length;
                 reportEvent({
                     event_type: 'cut',
-                    details: '检测到剪切操作'
+                    details: cutText,
+                    duration_ms: textLength
                 });
-                addLog('cut', '🚨 检测到剪切操作', 'danger');
+                addLog('cut', `🚨 检测到剪切操作 (${textLength} 字符)`, 'danger');
                 e.preventDefault();
-                alert('考试期间禁止剪切！');
+                alert('🚨 考试期间禁止剪切！\n此行为已被系统记录。');
             });
 
             document.addEventListener('contextmenu', (e) => {
@@ -824,6 +843,78 @@
                         <div class="info-item">
                             <div class="info-label">单次最长离开</div>
                             <div class="info-value">${(analysis.metrics.max_away_duration_ms / 1000).toFixed(1)} 秒</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">⚠️ 切屏频率分析</div>
+                    <div class="info-grid">
+                        <div class="info-item" style="background: ${analysis.metrics.frequent_switches_1min > 0 ? '#fff3cd' : '#f7fafc'};">
+                            <div class="info-label">1分钟内频繁切屏</div>
+                            <div class="info-value" style="color: ${analysis.metrics.frequent_switches_1min > 0 ? '#856404' : '#2d3748'};">
+                                ${analysis.metrics.frequent_switches_1min} 次
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.frequent_switches_5min > 0 ? '#fff3cd' : '#f7fafc'};">
+                            <div class="info-label">5分钟内频繁切屏</div>
+                            <div class="info-value" style="color: ${analysis.metrics.frequent_switches_5min > 0 ? '#856404' : '#2d3748'};">
+                                ${analysis.metrics.frequent_switches_5min} 次
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.max_switches_per_minute > 2 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">最高每分钟切屏</div>
+                            <div class="info-value" style="color: ${analysis.metrics.max_switches_per_minute > 2 ? '#742a2a' : '#2d3748'};">
+                                ${analysis.metrics.max_switches_per_minute} 次
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.rapid_succession_events > 0 ? '#fff3cd' : '#f7fafc'};">
+                            <div class="info-label">快速连续操作</div>
+                            <div class="info-value" style="color: ${analysis.metrics.rapid_succession_events > 0 ? '#856404' : '#2d3748'};">
+                                ${analysis.metrics.rapid_succession_events} 组
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">🔍 复制粘贴内容分析</div>
+                    <div class="info-grid">
+                        <div class="info-item" style="background: ${analysis.metrics.total_copy_characters > 0 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">累计复制字符</div>
+                            <div class="info-value" style="color: ${analysis.metrics.total_copy_characters > 0 ? '#742a2a' : '#2d3748'};">
+                                ${analysis.metrics.total_copy_characters} 字
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.max_single_copy_characters > 50 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">单次最长复制</div>
+                            <div class="info-value" style="color: ${analysis.metrics.max_single_copy_characters > 50 ? '#742a2a' : '#2d3748'};">
+                                ${analysis.metrics.max_single_copy_characters} 字
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.frequent_copy_1min > 0 ? '#fff3cd' : '#f7fafc'};">
+                            <div class="info-label">1分钟内频繁复制</div>
+                            <div class="info-value" style="color: ${analysis.metrics.frequent_copy_1min > 0 ? '#856404' : '#2d3748'};">
+                                ${analysis.metrics.frequent_copy_1min} 次
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.total_paste_characters > 0 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">累计粘贴字符</div>
+                            <div class="info-value" style="color: ${analysis.metrics.total_paste_characters > 0 ? '#742a2a' : '#2d3748'};">
+                                ${analysis.metrics.total_paste_characters} 字
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.paste_to_answer_ratio > 0.1 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">粘贴占答案比例</div>
+                            <div class="info-value" style="color: ${analysis.metrics.paste_to_answer_ratio > 0.1 ? '#742a2a' : '#2d3748'};">
+                                ${(analysis.metrics.paste_to_answer_ratio * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="info-item" style="background: ${analysis.metrics.suspicious_content_matches > 0 ? '#fed7d7' : '#f7fafc'};">
+                            <div class="info-label">可疑关键词匹配</div>
+                            <div class="info-value" style="color: ${analysis.metrics.suspicious_content_matches > 0 ? '#742a2a' : '#2d3748'};">
+                                ${analysis.metrics.suspicious_content_matches} 次
+                            </div>
                         </div>
                     </div>
                 </div>
